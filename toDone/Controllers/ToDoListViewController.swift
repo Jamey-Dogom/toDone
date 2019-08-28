@@ -7,17 +7,28 @@
 //
 
 import UIKit
+import CoreData
 
 class ToDoListViewController: UITableViewController {
     
     // an array of Item objects
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     var itemArray = [Item]()
-    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
+    
+    var selectedCategory : Category? {
+        didSet {
+            loadItems()
+        }
+    }
+    
+   
     
     override func viewDidLoad() {
         super.viewDidLoad()
-         self.loadItems()
+//         self.loadItems()
+        print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
         
+        loadItems()
         // file manager, which is an object which provides an interface to to the file share manager
         // default, shared, singleton
         
@@ -57,8 +68,9 @@ class ToDoListViewController: UITableViewController {
         // add a checkmark to the selected item
         itemArray[indexPath.row].done = !itemArray[indexPath.row].done
         self.saveItems()
-        self.loadItems()
+//        self.loadItems()
         // reload the table
+        self.loadItems()
         tableView.reloadData()
         
         // have the gray highlight of the selected cell go away
@@ -78,14 +90,19 @@ class ToDoListViewController: UITableViewController {
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
             // what will happen when user clicks the action
             
-            let newItem = Item()
+           
+            // inside closure
+            // create new item as instance of data model
+            let newItem = Item(context: self.context)
             newItem.title = textField.text!
-            
+            newItem.done = false
+            newItem.parentCategory = self.selectedCategory
             self.itemArray.append(newItem)
             
             self.saveItems()
+           
             
-            self.loadItems()
+//            self.loadItems()
             // reload the information
             self.tableView.reloadData()
         }
@@ -104,26 +121,72 @@ class ToDoListViewController: UITableViewController {
         
     }
     
+    // C CREAT ITEMS
     func saveItems() {
-        let encoder = PropertyListEncoder()
+//        let encoder = PropertyListEncoder()
         do {
-            let data = try encoder.encode(self.itemArray)
-            try data.write(to: self.dataFilePath!)
+            try context.save()
+//            let data = try encoder.encode(self.itemArray)
+//            try data.write(to: self.dataFilePath!)
         } catch {
-            print("Error encoding item array, \(error)")
+            print("Error saving data, \(error)")
         }
     }
     
-    func loadItems() {
-        if let data = try? Data(contentsOf: dataFilePath!){
-         let decoder = PropertyListDecoder()
-         do {
-            itemArray = try decoder.decode([Item].self, from: data)
-         } catch {
-            print("Error encoding item array, \(error)")
+    // R Read Items
+    // set default parameter as request all items
+    // external parameter -> with, internal parameter -> request
+    func loadItems(with request : NSFetchRequest<Item> = Item.fetchRequest(), predicate: NSPredicate? = nil) {
+//        if let data = try? Data(contentsOf: dataFilePath!){
+//        let request : NSFetchRequest<Item> = Item.fetchRequest()
+        let categoryPredicate = NSPredicate(format: "parentCategory.name MATCHES %@", selectedCategory!.name!)
+        
+        if let additionalPredicate = predicate {
+         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [additionalPredicate, categoryPredicate])
+        } else {
+             request.predicate = categoryPredicate
         }
+            
+        
+        
+         do {
+            itemArray = try context.fetch(request)
+//            itemArray = try decoder.decode([Item].self, from: data)
+         } catch {
+            print("Error reading items from Persitence Container, \(error)")
+        }
+        
+        tableView.reloadData()
       }
     
+   
+    
+    
+    }
+
+// extends controller and allows for search bar delegate
+//MARK: - Search bar methods
+extension ToDoListViewController : UISearchBarDelegate {
+    
+    
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar){
+        // queuery the DB
+        let request : NSFetchRequest<Item> = Item.fetchRequest()
+        
+        // NS predicate
+        request.predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+
+        loadItems(with: request)
+    }
+    
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+       if searchBar.text?.count == 0 {
+            loadItems()
+        DispatchQueue.main.async {
+            searchBar.resignFirstResponder()
+        }
+        }
     }
 }
 
