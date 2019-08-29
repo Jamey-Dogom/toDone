@@ -9,13 +9,13 @@
 import UIKit
 import RealmSwift
 
-class CategoryViewController: UITableViewController {
+class CategoryViewController: SwipeTableViewController {
     
     // initialize Realm, valid try according to Realm docs
     let realm = try! Realm()
     
     // ability to retreive data from DB
-//    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    //    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     // local array of category objects
     var categories: Results<Category>?
     
@@ -24,7 +24,7 @@ class CategoryViewController: UITableViewController {
         super.viewDidLoad()
         loadCats()
     }
-
+    
     //MARK: - TableView Datasource Methods
     // determine the number of rows necessary for the table
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -34,14 +34,27 @@ class CategoryViewController: UITableViewController {
     }
     // input data into the cells
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        // upon scroll have the cells be reusable
-        let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
-        // finding the category
-        cell.textLabel?.text = categories?[indexPath.row].name ?? "No Categories Added Yet"
+        
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
+        
+        if let category = categories?[indexPath.row] {
+            
+            cell.textLabel?.text = category.name
+            
+//            guard let categoryColour = UIColor(hexString: category.colour) else {fatalError()}
+//
+//            cell.backgroundColor = categoryColour
+//            cell.textLabel?.textColor = ContrastColorOf(categoryColour, returnFlat: true)
+            
+        }
+        
+        
+        
         return cell
+        
     }
     
-     //MARK: - TableView Delegate Methods
+    //MARK: - TableView Delegate Methods
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
@@ -70,21 +83,21 @@ class CategoryViewController: UITableViewController {
             try realm.write {
                 realm.add(category)
             }
-//            context.save()
+            //            context.save()
         } catch {
             print("Error saving data, \(error)")
         }
     }
     
     func loadCats(){
-//        with request : NSFetchRequest<Category> = Category.fetchRequest()
-//        do {
-//            categories = try context.fetch(request)
-//        } catch {
-//            print("Error retreiving the data, \(error)")
-//        }
+        //        with request : NSFetchRequest<Category> = Category.fetchRequest()
+        //        do {
+        //            categories = try context.fetch(request)
+        //        } catch {
+        //            print("Error retreiving the data, \(error)")
+        //        }
         categories = realm.objects(Category.self)
-//
+        //
         tableView.reloadData()
     }
     
@@ -100,7 +113,7 @@ class CategoryViewController: UITableViewController {
             
             let newCat = Category()
             newCat.name = textField.text!
-//            self.categories.append(newCat)
+            //            self.categories.append(newCat)
             self.saveCats(category: newCat)
             self.loadCats()
             
@@ -118,6 +131,21 @@ class CategoryViewController: UITableViewController {
         
     }
     
- 
-
+    //MARK: - Delete Data From Swipe
+    
+    override func updateModel(at indexPath: IndexPath) {
+        
+        if let categoryForDeletion = self.categories?[indexPath.row] {
+            do {
+                try self.realm.write {
+                    self.realm.delete(categoryForDeletion)
+                }
+            } catch {
+                print("Error deleting category, \(error)")
+            }
+        }
+    }
+    
+    
+    
 }
