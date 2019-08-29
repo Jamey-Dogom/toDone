@@ -8,10 +8,12 @@
 
 import Foundation
 import RealmSwift
+import ChameleonFramework
 
 class Category : Object {
     // dynamic allows us to check for changes during run time
     @objc dynamic var name : String = ""
+    @objc dynamic var color : String = ""
     // similar to models in Java Spring Boot
     // MANY to one
     let items = List<Item>()

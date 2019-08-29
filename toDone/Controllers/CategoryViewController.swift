@@ -8,6 +8,7 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
 class CategoryViewController: SwipeTableViewController {
     
@@ -23,7 +24,12 @@ class CategoryViewController: SwipeTableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         loadCats()
+        
+        // get rid of lines between table cells
+        tableView.separatorStyle = .none
     }
+    
+
     
     //MARK: - TableView Datasource Methods
     // determine the number of rows necessary for the table
@@ -40,11 +46,9 @@ class CategoryViewController: SwipeTableViewController {
         if let category = categories?[indexPath.row] {
             
             cell.textLabel?.text = category.name
-            
-//            guard let categoryColour = UIColor(hexString: category.colour) else {fatalError()}
-//
-//            cell.backgroundColor = categoryColour
-//            cell.textLabel?.textColor = ContrastColorOf(categoryColour, returnFlat: true)
+            cell.textLabel?.font = UIFont(name: (cell.textLabel?.font.fontName)!, size:25)
+            cell.backgroundColor = UIColor(hexString: category.color)
+            cell.textLabel?.textColor = ContrastColorOf(UIColor(hexString: category.color)!, returnFlat: true)
             
         }
         
@@ -113,6 +117,7 @@ class CategoryViewController: SwipeTableViewController {
             
             let newCat = Category()
             newCat.name = textField.text!
+            newCat.color = UIColor.randomFlat.hexValue()
             //            self.categories.append(newCat)
             self.saveCats(category: newCat)
             self.loadCats()
@@ -138,12 +143,16 @@ class CategoryViewController: SwipeTableViewController {
         if let categoryForDeletion = self.categories?[indexPath.row] {
             do {
                 try self.realm.write {
+                    for item in categoryForDeletion.items{
+                        self.realm.delete(item)
+                    }
                     self.realm.delete(categoryForDeletion)
                 }
             } catch {
                 print("Error deleting category, \(error)")
             }
         }
+        
     }
     
     
